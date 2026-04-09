@@ -1293,10 +1293,6 @@ function renderRevenuePage() {
 function filterOrders() {
   const q = (document.getElementById('orderSearch')?.value || '').toLowerCase();
   const ch = document.getElementById('orderChannelFilter')?.value || '';
-  const filtered = DATA.orders.filter(o =>
-    (!q || o.Customfunction filterOrders() {
-  const q = (document.getElementById('orderSearch')?.value || '').toLowerCase();
-  const ch = document.getElementById('orderChannelFilter')?.value || '';
   const prompt = document.getElementById('orderSearchPrompt');
   const wrap = document.getElementById('orderTableWrap');
   if (!q && !ch) {
