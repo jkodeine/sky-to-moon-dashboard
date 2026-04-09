@@ -834,27 +834,26 @@ async function loadAllData() {
       fetchSheetData(tabs.gscQueries)
     ]);
 
-    if (results[0]) DATA.revenue = results[0];
-    if (results[1]) DATA.orders = results[1];
-    if (results[2]) DATA.leads = results[2];
-    if (results[3]) DATA.channels = results[3];
-    if (results[4]) DATA.customers = results[4];
-    if (results[5]) DATA.ga4Summary = results[5];
-    if (results[6]) DATA.ga4TimeSeries = results[6];
-    if (results[7]) DATA.ga4Devices = results[7];
-    if (results[8]) DATA.ga4LandingPages = results[8];
-    if (results[9]) DATA.ga4Events = results[9];
-    if (results[10]) DATA.gscSummary = results[10];
-    if (results[11]) DATA.gscTimeSeries = results[11];
-    if (results[12]) DATA.gscPages = results[12];
-    if (results[13]) DATA.gscQueries = results[13];
+    // Per-tab fallback: use live data when available, sample data when not
+    const sample = generateSampleData();
+    const keys = ['revenue','orders','leads','channels','customers',
+      'ga4Summary','ga4TimeSeries','ga4Devices','ga4LandingPages','ga4Events',
+      'gscSummary','gscTimeSeries','gscPages','gscQueries'];
+    let liveCount = 0;
+    keys.forEach(function(key, i) {
+      if (results[i] && results[i].length > 0) {
+        DATA[key] = results[i];
+        liveCount++;
+      } else {
+        DATA[key] = sample[key]; // fall back to sample for this tab
+      }
+    });
 
-    // Fall back to sample data if all fetches returned empty
-    var anyLiveData = results.some(function(r) { return r && r.length > 0; });
-    if (anyLiveData) {
-      updateStatus('Live \u2014 Google Sheets connected');
+    if (liveCount === keys.length) {
+      updateStatus('Live \u2014 All data from Google Sheets');
+    } else if (liveCount > 0) {
+      updateStatus('Live \u2014 Google Sheets connected (' + liveCount + '/' + keys.length + ' tabs live)');
     } else {
-      DATA = generateSampleData();
       updateStatus('Sample data (Sheets empty \u2014 awaiting pipeline)');
     }
   }
