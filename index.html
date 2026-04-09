@@ -279,15 +279,18 @@ html.light .data-banner{background:linear-gradient(135deg,rgba(108,92,231,.06),r
     </div>
   </div>
   <div class="panel">
-    <div class="panel-header"><div><div class="panel-title">Orders Detail</div></div></div>
+    <div class="panel-header"><div><div class="panel-title">Customer Order Lookup</div></div></div>
     <div class="filter-bar">
-      <span class="filter-label">Filter:</span>
+      <span class="filter-label">Search:</span>
       <input type="text" id="orderSearch" placeholder="Search by customer or product..." oninput="filterOrders()">
       <select id="orderChannelFilter" onchange="filterOrders()">
         <option value="">All Channels</option>
       </select>
     </div>
-    <div class="tbl-wrap">
+    <div id="orderSearchPrompt" style="padding:32px 20px;text-align:center;color:var(--muted);font-size:14px;">
+      Type a customer name or product above to view matching orders.
+    </div>
+    <div class="tbl-wrap" id="orderTableWrap" style="display:none;">
       <table id="tblOrders">
         <thead><tr>
           <th onclick="sortTable('tblOrders',0)">Date</th>
@@ -1291,6 +1294,20 @@ function filterOrders() {
   const q = (document.getElementById('orderSearch')?.value || '').toLowerCase();
   const ch = document.getElementById('orderChannelFilter')?.value || '';
   const filtered = DATA.orders.filter(o =>
+    (!q || o.Customfunction filterOrders() {
+  const q = (document.getElementById('orderSearch')?.value || '').toLowerCase();
+  const ch = document.getElementById('orderChannelFilter')?.value || '';
+  const prompt = document.getElementById('orderSearchPrompt');
+  const wrap = document.getElementById('orderTableWrap');
+  if (!q && !ch) {
+    if (prompt) prompt.style.display = '';
+    if (wrap) wrap.style.display = 'none';
+    fillTable('tblOrders', []);
+    return;
+  }
+  if (prompt) prompt.style.display = 'none';
+  if (wrap) wrap.style.display = '';
+  const filtered = DATA.orders.filter(o =>
     (!q || o.Customer.toLowerCase().includes(q) || o.Product.toLowerCase().includes(q)) &&
     (!ch || o.Channel === ch)
   );
@@ -1298,14 +1315,7 @@ function filterOrders() {
     o.Date, o.Customer, o.Product, fmt(Number(o.Amount)), o.Channel,
     `<span class="badge badge-${o.Status === 'Completed' ? 'green' : o.Status === 'Pending' ? 'orange' : 'blue'}">${o.Status}</span>`
   ]));
-}
-
-/* ── Leads Page ── */
-function renderLeadsPage() {
-  const total = DATA.leads.length;
-  const won = DATA.leads.filter(l => l.Stage === 'Closed Won');
-  const pipeline = DATA.leads.filter(l => !l.Stage.includes('Closed'));
-  const pipelineVal = pipeline.reduce((s, l) => s + Number(l.Value), 0);
+}al = pipeline.reduce((s, l) => s + Number(l.Value), 0);
 
   document.getElementById('leadsKpis').innerHTML = [
     { label: 'Total Leads', value: fmtN(total) },
