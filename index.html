@@ -1311,7 +1311,14 @@ function filterOrders() {
     o.Date, o.Customer, o.Product, fmt(Number(o.Amount)), o.Channel,
     `<span class="badge badge-${o.Status === 'Completed' ? 'green' : o.Status === 'Pending' ? 'orange' : 'blue'}">${o.Status}</span>`
   ]));
-}al = pipeline.reduce((s, l) => s + Number(l.Value), 0);
+}
+
+/* ── Leads Page ── */
+function renderLeadsPage() {
+  const total = DATA.leads.length;
+  const won = DATA.leads.filter(l => l.Stage === 'Closed Won');
+  const pipeline = DATA.leads.filter(l => !l.Stage.includes('Closed'));
+  const pipelineVal = pipeline.reduce((s, l) => s + Number(l.Value), 0);
 
   document.getElementById('leadsKpis').innerHTML = [
     { label: 'Total Leads', value: fmtN(total) },
