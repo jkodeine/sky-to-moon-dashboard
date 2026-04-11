@@ -223,10 +223,10 @@ html.light .data-banner{background:linear-gradient(135deg,rgba(108,92,231,.06),r
     <div id="insightsContainer"></div>
   </div>
 
-  <!-- Strategic Analysis -->
+    <h3 style="display:flex;align-items:center;gap:8px;">Strategic Analysis <span style="font-size:11px;font-weight:400;background:var(--accent);color:#fff;padding:2px 10px;border-radius:20px;">Last 30 Days</span></h3>
   <div class="insights" style="margin-top:16px;">
     <h3>Strategic Analysis</h3>
-    <div id="strategicAnalysis" style="font-size:14px;line-height:1.8;color:var(--text);padding:4px 0;"></div>
+    <div id="strategicAnalysis" style="font-size:14px;line-height:1.9;color:var(--text);padding:4px 0;"></div>
   </div>
 
   <!-- KPI Cards -->
@@ -1184,68 +1184,162 @@ function mode(arr) {
   return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
 }
 
-/* ── Strategic Analysis ── */
+/* ── Strategic Analysis — 30-Day Performance Review w/ Ecommerce Focus ── */
 function renderStrategicAnalysis(revGrowth, lastMonthRev, topCh, atRiskCount, totalLeads, wonLeads, totalOrders, avgAOV, repeatCount, totalCustomers) {
   const el = document.getElementById('strategicAnalysis');
   if (!el) return;
 
-  // Gather GA4 metrics
+  // ── GA4 metrics ──
   const ga4Lookup = {};
   DATA.ga4Summary.forEach(r => { ga4Lookup[r.Metric] = r.Value; });
   const sessions = Number(ga4Lookup['Sessions']) || 0;
+  const pageViews = Number(ga4Lookup['Page Views']) || 0;
+  const activeUsers = Number(ga4Lookup['Active Users']) || 0;
   const engRate = parseFloat(ga4Lookup['Engagement Rate']) || 0;
   const bounceRate = parseFloat(ga4Lookup['Bounce Rate']) || 0;
+  const pagesPerSession = sessions > 0 ? (pageViews / sessions).toFixed(1) : 0;
 
-  // Gather GSC metrics
+  // ── GSC metrics ──
   const gscLookup = {};
   DATA.gscSummary.forEach(r => { gscLookup[r.Metric] = r.Value; });
   const gscClicks = Number(gscLookup['Clicks']) || 0;
   const gscImpressions = Number(gscLookup['Impressions']) || 0;
   const gscCTR = parseFloat(gscLookup['CTR']) || 0;
-  const gscPosition = parseFloat(gscLookup['Average Position']) || 0;
+  const gscPosition = parseFloat(gscLookup['Position'] || gscLookup['Average Position']) || 0;
 
-  // Conversion and retention rates
-  const convRate = totalLeads > 0 ? ((wonLeads / totalLeads) * 100).toFixed(1) : 0;
-  const repeatPctCalc = totalCustomers > 0 ? ((repeatCount / totalCustomers) * 100).toFixed(1) : 0;
-
-  // Device split from GA4
-  const mobileData = DATA.ga4Devices.find(d => (d['Device Category'] || '').toLowerCase() === 'mobile');
-  const desktopData = DATA.ga4Devices.find(d => (d['Device Category'] || '').toLowerCase() === 'desktop');
+  // ── Device split ──
+  const mobileData = DATA.ga4Devices.find(d => (d.Device || d['Device Category'] || '').toLowerCase() === 'mobile');
+  const desktopData = DATA.ga4Devices.find(d => (d.Device || d['Device Category'] || '').toLowerCase() === 'desktop');
   const mobileSessions = mobileData ? Number(mobileData.Sessions) : 0;
   const desktopSessions = desktopData ? Number(desktopData.Sessions) : 0;
   const mobilePct = sessions > 0 ? ((mobileSessions / sessions) * 100).toFixed(0) : 0;
 
-  // Build "what's going well" section
-  const goingWell = [];
-  if (engRate > 50) goingWell.push(`Site engagement is strong at ${engRate}%, well above the 50% benchmark, indicating that content is resonating with visitors`);
-  else if (engRate > 0) goingWell.push(`Site engagement rate stands at ${engRate}%, with room for improvement through content optimization`);
-  if (sessions > 2000) goingWell.push(`healthy traffic volume with ${fmtNum(sessions)} sessions over the reporting period`);
-  if (gscCTR > 5) goingWell.push(`organic search CTR of ${gscCTR}% significantly outperforms the industry average of 2\u20133%`);
-  else if (gscClicks > 0) goingWell.push(`organic search is generating ${fmtNum(gscClicks)} clicks from ${fmtNum(gscImpressions)} impressions`);
-  if (Number(convRate) > 20) goingWell.push(`lead-to-close conversion rate of ${convRate}% demonstrates effective sales pipeline management`);
-  if (Number(revGrowth) > 0) goingWell.push(`revenue is trending upward at +${revGrowth}% month-over-month`);
-  if (topCh && topCh !== '-') goingWell.push(`${topCh} continues to be the highest-performing revenue channel`);
+  // ── Revenue by channel ──
+  const chRevMap = {};
+  DATA.revenue.forEach(r => { chRevMap[r.Channel] = (chRevMap[r.Channel] || 0) + Number(r.Revenue); });
+  const totalAllRev = Object.values(chRevMap).reduce((a, b) => a + b, 0);
+  const webRev = (chRevMap['WEB'] || 0) + (chRevMap['Web'] || 0) + (chRevMap['WEBSITE'] || 0);
+  const directRev = chRevMap['Direct'] || chRevMap['DIRECT'] || 0;
+  const storeRev = chRevMap['STORE'] || chRevMap['Store'] || 0;
+  const onlineRev = webRev + directRev;
+  const onlinePct = totalAllRev > 0 ? ((onlineRev / totalAllRev) * 100).toFixed(1) : 0;
+  const sortedChannels = Object.entries(chRevMap).sort((a, b) => b[1] - a[1]);
 
-  // Build "strategic improvements" section
-  const improvements = [];
-  if (bounceRate > 35) improvements.push(`Reduce the ${bounceRate}% bounce rate by improving page load speed, refining hero content, and adding clearer calls-to-action on high-traffic landing pages`);
-  if (Number(mobilePct) > 45 && desktopSessions > 0) improvements.push(`With ${mobilePct}% of sessions coming from mobile, prioritize mobile UX optimization including faster load times and simplified navigation`);
-  else if (Number(mobilePct) < 30 && Number(mobilePct) > 0) improvements.push(`Mobile traffic represents only ${mobilePct}% of sessions \u2014 consider mobile-first content strategies and social media campaigns to grow this segment`);
-  if (Number(repeatPctCalc) < 50 && repeatCount > 0) improvements.push(`Repeat buyer rate is ${repeatPctCalc}% \u2014 implement post-purchase email sequences through Klaviyo with personalized product recommendations to convert single-order buyers into repeat customers`);
-  else if (Number(repeatPctCalc) >= 50) improvements.push(`Strong ${repeatPctCalc}% repeat rate \u2014 leverage Klaviyo to build loyalty tiers and reward repeat buyers with early access and exclusive offers`);
-  if (gscPosition > 5 && gscPosition > 0) improvements.push(`Average search position of ${gscPosition} suggests opportunity to move into top-5 rankings through targeted content optimization and strategic backlink acquisition`);
-  else if (gscClicks === 0 && gscImpressions === 0) improvements.push(`Search Console data is still populating \u2014 once indexed, focus on building topical authority through consistent blog content and earning quality backlinks`);
-  if (avgAOV > 0) improvements.push(`With an AOV of ${fmt(avgAOV)}, test upsell and cross-sell strategies at checkout to lift average order value by 15\u201320%`);
-  improvements.push(`Connect Shopify storefront data and Klaviyo email metrics to this dashboard to unlock full-funnel visibility from acquisition through retention`);
+  // ── Orders by channel ──
+  const ordByChannel = {};
+  DATA.orders.forEach(o => { ordByChannel[o.Channel] = (ordByChannel[o.Channel] || 0) + 1; });
+  const webOrderCount = (ordByChannel['WEB'] || 0) + (ordByChannel['Web'] || 0);
+  const directOrderCount = ordByChannel['Direct'] || ordByChannel['DIRECT'] || 0;
+  const onlineOrderCount = webOrderCount + directOrderCount;
 
-  // Compose the paragraphs
+  // ── Customer health ──
+  const convRate = totalLeads > 0 ? ((wonLeads / totalLeads) * 100).toFixed(1) : 0;
+  const repeatPct = totalCustomers > 0 ? ((repeatCount / totalCustomers) * 100).toFixed(1) : 0;
+  const goldCustomers = DATA.customers.filter(c => c.LTVTier === 'Gold').length;
+  const silverCustomers = DATA.customers.filter(c => c.LTVTier === 'Silver').length;
+  const churnedCustomers = DATA.customers.filter(c => c.Status === 'Churned').length;
+  const atRiskCustomers = DATA.customers.filter(c => c.Status === 'At Risk').length;
+  const activeCustomers = DATA.customers.filter(c => c.Status === 'Active').length;
+
+  // ── Top landing pages ──
+  const topLPs = DATA.ga4LandingPages.slice(0, 3).map(p => p.LandingPage || Object.values(p)[0] || '');
+
+  // ── Top search queries ──
+  const topQueries = DATA.gscQueries.slice(0, 5).map(q => q.Query || Object.values(q)[0] || '');
+
+  // ── Month-over-month revenue ──
+  const monthlyRev = {};
+  DATA.revenue.forEach(r => { monthlyRev[r.Month] = (monthlyRev[r.Month] || 0) + Number(r.Revenue); });
+  const sortedMonths = Object.keys(monthlyRev).sort();
+  const curMonthRev = monthlyRev[sortedMonths[sortedMonths.length - 1]] || 0;
+  const prevMonthRev = monthlyRev[sortedMonths[sortedMonths.length - 2]] || 1;
+
+  // ═══════════════════════════════════════════════
+  //  BUILD THE ANALYSIS
+  // ═══════════════════════════════════════════════
+
   let html = '';
-  html += '<p style="margin:0 0 12px 0;"><strong style="color:var(--accent);">What\u2019s Going Well:</strong> ';
-  html += goingWell.length > 0 ? goingWell.join('; ') + '.' : 'Data is still being collected across channels \u2014 initial pipeline is operational and metrics will populate with the next daily refresh.';
-  html += '</p>';
-  html += '<p style="margin:0;"><strong style="color:var(--accent);">Strategic Improvements:</strong> ';
-  html += improvements.join('. ') + '.';
-  html += '</p>';
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  // ── EXECUTIVE SUMMARY ──
+  html += `<div style="margin-bottom:16px;padding:12px 16px;background:var(--accent)11;border-left:4px solid var(--accent);border-radius:0 8px 8px 0;">`;
+  html += `<strong style="color:var(--accent);font-size:15px;">Executive Summary</strong><span style="float:right;font-size:11px;opacity:.6;">Updated ${today}</span><br>`;
+  html += `<span>Over the last 30 days, Skylar Madison generated <strong>${fmt(totalAllRev)}</strong> in total revenue across <strong>${fmtNum(totalOrders)}</strong> orders `;
+  html += `(AOV: <strong>${fmt(avgAOV)}</strong>). `;
+  if (onlineRev > 0) {
+    html += `Web and Direct ecommerce contributed <strong>${fmt(onlineRev)}</strong> (${onlinePct}% of total), `;
+    html += onlinePct > 25 ? `showing strong digital adoption. ` : `signaling significant room to grow the online channel. `;
+  }
+  html += `The site attracted <strong>${fmtNum(sessions)}</strong> sessions from <strong>${fmtNum(activeUsers)}</strong> unique visitors with a <strong>${engRate}%</strong> engagement rate`;
+  if (gscClicks > 0) html += `, and organic search delivered <strong>${fmtNum(gscClicks)}</strong> clicks at a <strong>${gscCTR}%</strong> CTR (avg position: ${gscPosition})`;
+  html += `.</span></div>`;
+
+  // ── WEB SALES & ECOMMERCE SPOTLIGHT ──
+  html += `<div style="margin-bottom:14px;">`;
+  html += `<strong style="color:var(--green);">🛒 Ecommerce &amp; Web Sales Spotlight:</strong> `;
+  if (onlineRev > 0 || webOrderCount > 0) {
+    const webAOV = onlineOrderCount > 0 ? Math.round(onlineRev / onlineOrderCount) : 0;
+    html += `Web + Direct channels produced <strong>${fmtNum(onlineOrderCount)}</strong> orders totaling <strong>${fmt(onlineRev)}</strong>`;
+    if (webAOV > 0) html += ` with a web AOV of <strong>${fmt(webAOV)}</strong>`;
+    html += `. `;
+    if (webAOV > avgAOV) html += `Online AOV outpaces the blended average by ${fmt(webAOV - avgAOV)}, suggesting higher-value buyers are converting digitally. `;
+    else if (webAOV < avgAOV && webAOV > 0) html += `Online AOV trails the blended average by ${fmt(avgAOV - webAOV)} — consider bundling, minimum-free-shipping thresholds, or post-add-to-cart upsells to close this gap. `;
+    if (Number(mobilePct) > 50) html += `With <strong>${mobilePct}%</strong> of traffic from mobile, a frictionless mobile checkout is critical to maximizing web conversion. `;
+    if (storeRev > onlineRev * 3) html += `In-store still drives ${((storeRev/totalAllRev)*100).toFixed(0)}% of revenue — there is a major opportunity to shift more sales online through targeted digital campaigns, retargeting, and email automations.`;
+  } else {
+    html += `No dedicated web-channel orders detected in the current period. This represents the single largest growth opportunity: launching or scaling a direct-to-consumer ecommerce presence through Shopify or a similar platform could unlock an entirely new revenue stream alongside the existing wholesale business.`;
+  }
+  html += `</div>`;
+
+  // ── WHAT'S GOING WELL ──
+  const goingWell = [];
+  if (engRate > 50) goingWell.push(`Site engagement is <strong>${engRate}%</strong>, well above the 50% benchmark — content is resonating and visitors are actively exploring`);
+  else if (engRate > 30) goingWell.push(`Engagement rate of ${engRate}% shows visitors are interacting with the site`);
+  if (sessions > 1500) goingWell.push(`healthy traffic volume of <strong>${fmtNum(sessions)} sessions</strong> and <strong>${fmtNum(pageViews)} page views</strong> (${pagesPerSession} pages/session)`);
+  if (gscCTR > 10) goingWell.push(`organic search CTR of <strong>${gscCTR}%</strong> dramatically outperforms the fashion industry average of 3–5%, indicating strong brand recognition and compelling meta descriptions`);
+  else if (gscCTR > 5) goingWell.push(`organic CTR of <strong>${gscCTR}%</strong> is solid, with branded terms like "${topQueries[0] || 'sky to moon'}" driving the majority of clicks`);
+  else if (gscClicks > 0) goingWell.push(`organic search generated <strong>${fmtNum(gscClicks)} clicks</strong> from ${fmtNum(gscImpressions)} impressions`);
+  if (Number(repeatPct) >= 50) goingWell.push(`exceptional <strong>${repeatPct}% repeat purchase rate</strong> with <strong>${goldCustomers} Gold-tier</strong> and <strong>${silverCustomers} Silver-tier</strong> accounts, demonstrating strong brand loyalty`);
+  else if (repeatCount > 0) goingWell.push(`${repeatCount} repeat buyers (${repeatPct}%) forming the foundation of recurring revenue`);
+  if (Number(revGrowth) > 0) goingWell.push(`revenue trending upward at <strong>+${revGrowth}% MoM</strong>`);
+  if (activeCustomers > 0) goingWell.push(`<strong>${activeCustomers}</strong> active accounts with ${fmtNum(totalOrders)} orders in the period`);
+  if (sortedChannels.length > 0) goingWell.push(`top revenue channel is <strong>${sortedChannels[0][0]}</strong> at ${fmt(sortedChannels[0][1])}`);
+
+  html += `<div style="margin-bottom:14px;">`;
+  html += `<strong style="color:var(--accent);">✅ What’s Going Well:</strong> `;
+  html += goingWell.length > 0 ? goingWell.join('; ') + '.' : 'Data is being collected — metrics will populate with the next daily refresh.';
+  html += `</div>`;
+
+  // ── STRATEGIC IMPROVEMENTS ──
+  const improvements = [];
+  if (bounceRate > 35) improvements.push(`<strong>Reduce ${bounceRate}% bounce rate</strong> by optimizing page load speed (target under 2s), refining hero imagery and above-the-fold CTAs on top landing pages${topLPs.length > 0 ? ' like <em>' + topLPs[0] + '</em>' : ''}`);
+  if (Number(mobilePct) > 55) improvements.push(`<strong>Prioritize mobile UX</strong> — ${mobilePct}% of all sessions are mobile, so ensure product pages, filtering, and checkout are fully optimized for thumb-friendly navigation and fast load times`);
+  else if (Number(mobilePct) < 35 && Number(mobilePct) > 0) improvements.push(`<strong>Grow mobile traffic</strong> (only ${mobilePct}% of sessions) through Instagram/TikTok campaigns, mobile-first landing pages, and SMS marketing`);
+  if (onlineRev > 0 && storeRev > onlineRev * 2) improvements.push(`<strong>Scale online sales</strong> — in-store still dominates at ${((storeRev/totalAllRev)*100).toFixed(0)}% of revenue. Drive web conversions through abandoned-cart emails, retargeting ads, site-exclusive promotions, and influencer collaborations`);
+  if (churnedCustomers > 10) improvements.push(`<strong>Win back ${churnedCustomers} churned accounts</strong> with re-engagement campaigns: personalized "we miss you" emails, exclusive comeback offers, and updated lookbook previews`);
+  if (atRiskCustomers > 5) improvements.push(`<strong>Intervene on ${atRiskCustomers} at-risk accounts</strong> before they churn — trigger proactive outreach with tailored recommendations based on their purchase history`);
+  if (gscPosition > 5 && gscPosition > 0) improvements.push(`<strong>Improve search rankings</strong> (avg position: ${gscPosition}) by creating category-specific landing pages, optimizing product schema markup, and building quality backlinks from fashion blogs`);
+  else if (gscPosition > 0 && gscPosition <= 5) improvements.push(`<strong>Defend top-5 search position</strong> (avg: ${gscPosition}) by regularly refreshing content, expanding long-tail keyword coverage, and monitoring competitor movements`);
+  if (avgAOV > 0) improvements.push(`<strong>Lift AOV</strong> from ${fmt(avgAOV)} by testing bundle deals, "complete the look" recommendations, and tiered free-shipping thresholds (e.g., free shipping over ${fmt(Math.round(avgAOV * 1.3))})`);
+  improvements.push(`<strong>Connect Klaviyo + Shopify</strong> to this dashboard to close the full-funnel loop from ad impression → site visit → email nurture → purchase → repeat buy`);
+
+  html += `<div style="margin-bottom:14px;">`;
+  html += `<strong style="color:var(--orange);">📋 Strategic Improvements:</strong> `;
+  html += improvements.map((imp, i) => `<br><span style="opacity:.5;">${i+1}.</span> ${imp}`).join('') + '.';
+  html += `</div>`;
+
+  // ── CHANNEL PERFORMANCE TABLE ──
+  if (sortedChannels.length > 1) {
+    html += `<div style="margin-top:8px;">`;
+    html += `<strong style="color:var(--blue);">📊 Channel Revenue Mix (30 days):</strong><br>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">`;
+    sortedChannels.forEach(([ch, rev]) => {
+      const pct = ((rev / totalAllRev) * 100).toFixed(1);
+      const isWeb = /web|direct/i.test(ch);
+      html += `<span style="display:inline-block;background:${isWeb ? 'var(--green)22' : 'var(--card)'};border:1px solid ${isWeb ? 'var(--green)' : 'var(--border)'};padding:4px 12px;border-radius:20px;font-size:12px;">${ch}: <strong>${fmt(rev)}</strong> (${pct}%)${isWeb ? ' 🌐' : ''}</span>`;
+    });
+    html += `</div></div>`;
+  }
 
   el.innerHTML = html;
 }
